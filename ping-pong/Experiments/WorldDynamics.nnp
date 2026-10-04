@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SNN>
+  <RECEPTORS name="Punishment" n="1">
+    <!--NOT USED NOW-->
+    <Implementation lib="ping-pong-environment"></Implementation>
+  </RECEPTORS>
+  <RECEPTORS name="Reward" n="1">
+    <Implementation lib="ping-pong-environment"></Implementation>
+  </RECEPTORS>
+  <RECEPTORS name="R" n="108">
+    <Implementation lib="ping-pong-environment"></Implementation>
+  </RECEPTORS>
+  <RECEPTORS name="Actions" n="2">
+    <Implementation lib="ping-pong-environment"></Implementation>
+  </RECEPTORS>
+  <RECEPTORS name="RandomActions" n="2">
+    <Implementation lib="fromFile">
+    	<args type="none">
+	    <noise>0.03</noise>
+	</args>
+    </Implementation>
+  </RECEPTORS>
+  <NETWORK>
+    <Implementation lib="Time">
+    	<args>
+    		<input>R</input>
+    		<output>T</output>
+    		<minperiod>10</minperiod>
+    		<nperiods>4</nperiods>
+    		<maxISI>4</maxISI>
+    	</args>
+    </Implementation>
+    <Implementation lib="DyALA">
+    	<args>
+    		<input>MEMORYT</input>
+    		<input_time_periods>4</input_time_periods>
+    		<nmicrocolumnsenter>$(NLEARNINGGROUPSENTER)</nmicrocolumnsenter>
+    		<nmicrocolumnscont>$(NLEARNINGGROUPSCONT)</nmicrocolumnscont>
+                <wthrexcessenter>$(WTHREXCESSENTER)</wthrexcessenter>
+                <wthrexcesscont>$(WTHREXCESSCONT)</wthrexcesscont>
+                <dwenter>$(DWPOSENTER)</dwenter>
+                <dwcont>$(DWPOSCONT)</dwcont>
+                <relnegdwenter>$(RELDWNEGENTER)</relnegdwenter>
+                <relnegdwcont>$(RELDWNEGCONT)</relnegdwcont>
+                <time_scale>10</time_scale>
+		<minweightenter>$(MINWEIGHTENTER)</minweightenter>
+		<maxweightenter>$(MAXWEIGHTENTER)</maxweightenter>
+		<minweightcont>$(MINWEIGHTCONT)</minweightcont>
+		<maxweightcont>$(MAXWEIGHTCONT)</maxweightcont>
+		<benter>$(BENTER)</benter>
+		<steps_to_hinge_enter>$(STEPS_TO_HINGE_ENTER)</steps_to_hinge_enter>
+		<bcont>$(BCONT)</bcont>
+		<steps_to_hinge_cont>$(STEPS_TO_HINGE_CONT)</steps_to_hinge_cont>
+	      	<stability_resource_change_ratio_enter>$(STABILITYRESOURCECHANGERATIOENTER)</stability_resource_change_ratio_enter>
+	      	<stability_resource_change_ratio_cont>$(STABILITYRESOURCECHANGERATIOCONT)</stability_resource_change_ratio_cont>
+	      	<onefactorplasticityenter>$(ONEFACTORPLASTICITYENTER)</onefactorplasticityenter>
+	      	<onefactorplasticitycont>$(ONEFACTORPLASTICITYCONT)</onefactorplasticitycont>
+                <nsilentsynapses>$(NSILENTSYNAPSES)</nsilentsynapses>
+                <chartimeenter>$(CHARTIMEENTER)</chartimeenter>
+                <chartimecont>$(CHARTIMECONT)</chartimecont>
+                <hebbian_plasticity_chartime_ratio_enter>$(HEBBIANPLASTICITYCHARTIMERATIO)</hebbian_plasticity_chartime_ratio_enter>
+                <learning_time>1400000</learning_time>
+                <ncopies>1</ncopies>
+    	</args>
+    </Implementation>
+    <Sections>
+	<Section name="N">
+		<props>
+			<n>2</n>
+		</props>
+	</Section>
+	<Link from="RandomActions" to="N" policy="aligned"></Link>
+    </Sections>
+  </NETWORK>
+   <Readout lib="ping-pong-environment">
+    <output>N</output>
+    <args></args>
+   </Readout>
+   <Readout lib="MultistatePredictor">
+    <output>MEMORYT</output>
+    <output>OUTtotal</output>
+    <args>
+	<nperiods>4</nperiods>
+    	<min_prediction_period>10</min_prediction_period>   <!--predicting TSS should stop not earlier than this time before state beginning-->
+    	<max_prediction_period>30</max_prediction_period>   <!--predicting TSS should begin not earlier than this time before state beginning-->
+    	<max_prediction_ISI>10</max_prediction_ISI>
+    	<learning_time>1400000</learning_time>
+    </args>
+   </Readout>
+</SNN>  

@@ -1,0 +1,8 @@
+LIBRARY	"WorldModelTest"
+EXPORTS
+SetParametersIn=?SetParametersIn@@YAPEAVIReceptors@@PEBDAEAHAEBVxml_node@pugi@@@Z
+LoadStatus=?LoadStatus@@YAPEAVIReceptors@@AEAVSerializer@@@Z
+SetParametersOut=?SetParametersOut@@YAXHHHAEBVxml_node@pugi@@@Z
+ObtainOutputSpikes=?ObtainOutputSpikes@@YA_NAEBV?$vector@HV?$allocator@H@std@@@std@@@Z
+Finalize=?Finalize@@YAHHPEAU_iobuf@@@Z
+Serialize=?Serialize@@YAXAEAVSerializer@@_N@Z
