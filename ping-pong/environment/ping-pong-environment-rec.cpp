@@ -233,9 +233,45 @@ public:
 #define BIGREALNUMBER 1.e10F
 #endif
 
+static const float LEFT_WALL_X   = -0.5F;
+static const float RIGHT_WALL_X  =  0.5F;
+static const float BOTTOM_WALL_Y = -0.5F;
+static const float TOP_WALL_Y    =  0.5F;
+
+int nActionCommandPeriod = 1;
+
+static float rFoldToSegment(float rValue, float rLeft, float rRight)
+{
+    float rLength = rRight - rLeft;
+    float rShifted = (rValue - rLeft) / rLength;
+    float rMod = fmod(rShifted, 2.F);
+    if (rMod < 0.F)
+        rMod += 2.F;
+    float rFolded = rMod <= 1.F ? rMod : 2.F - rMod;
+    return rLeft + rFolded * rLength;
+}
+
+static float rTargetYAtLeftWall(void)
+{
+    float x0 = vr_CurrentPhaseSpacePoint[0];
+    float y0 = vr_CurrentPhaseSpacePoint[1];
+    float vx = vr_CurrentPhaseSpacePoint[2];
+    float vy = vr_CurrentPhaseSpacePoint[3];
+
+    if (x0 <= LEFT_WALL_X)
+        return y0;
+    if (fabs(vx) < 1e-12F)
+        return y0;
+
+    float t = vx < 0.F ? (x0 - LEFT_WALL_X) / (-vx)
+                       : (RIGHT_WALL_X - x0) / vx + (RIGHT_WALL_X - LEFT_WALL_X) / vx;
+    return rFoldToSegment(y0 + vy * t, BOTTOM_WALL_Y, TOP_WALL_Y);
+}
+
 class DYNAMIC_LIBRARY_EXPORTED_CLASS Actions: public IReceptors
 {
     float rPastRY = BIGREALNUMBER;
+    int   CommandCooldown = 0;
 protected:
     virtual void GetMeanings(VECTOR<STRING> &vstr_Meanings) const override
     {
@@ -247,8 +283,21 @@ public:
     Actions() {}
     virtual bool bGenerateSignals(unsigned *pfl, int bitoffset) override
     {
-        *pfl = rPastRY == BIGREALNUMBER || rPastRY == vr_CurrentPhaseSpacePoint[4] ? 0 : rPastRY > vr_CurrentPhaseSpacePoint[4] ? 1 : 2;
-        rPastRY = vr_CurrentPhaseSpacePoint[4];
+        float rTargetY = rTargetYAtLeftWall();
+        float rRacketY = vr_CurrentPhaseSpacePoint[4];
+        float rMovementThreshold = 0.5F / nSpatialZones;
+
+        *pfl = 0;
+        if (fabs(rTargetY - rRacketY) > rMovementThreshold) {
+            if (CommandCooldown <= 0) {
+                *pfl = rTargetY > rRacketY ? 2 : 1;
+                CommandCooldown = nActionCommandPeriod > 1 ? nActionCommandPeriod - 1 : 0;
+            } else
+                --CommandCooldown;
+        } else
+            CommandCooldown = 0;
+
+        rPastRY = rTargetY;
         return true;
     }
     virtual void Randomize(void) override {};
@@ -256,12 +305,14 @@ public:
     {
         IReceptors::SaveStatus(ser);
         ser << rPastRY;
+        ser << CommandCooldown;
     }
     virtual ~Actions() = default;
     void LoadStatus(Serializer &ser)
     {
         IReceptors::LoadStatus(ser);
         ser >> rPastRY;
+        ser >> CommandCooldown;
     }
 };
 
@@ -276,6 +327,9 @@ RECEPTORS_SET_PARAMETERS(pchMyReceptorSectionName, nReceptors, xn)
 		case 2: nReceptors = nInputs;
 			    return new rec_ping_pong;
         case 3: nReceptors = 2;
+                nActionCommandPeriod = atoi_s(xn.child("action_period").child_value());
+                if (nActionCommandPeriod <= 0)
+                    nActionCommandPeriod = 1;
                 return new Actions;
         default: cout << "ping-pong -- Too many calls of SetParametersIn\n";
 				exit(-1);
