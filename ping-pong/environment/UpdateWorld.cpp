@@ -1,3 +1,4 @@
+// .specs/2026-10-13_ping-pong-imitation-learning.md
 #include "EnvironmentState.hpp"
 
 using namespace std;
@@ -7,12 +8,44 @@ extern RandomNumberGenerator rng;
 
 pair<float, float> prr_BallSpeed;
 
+float rRacketSize = DEFAULT_RACKET_SIZE;
+float rRacketStep = 1.F / nSpatialZones;
+float rMovementThreshold = 0.5F / nSpatialZones;
+
+static void ClampRacket(void)
+{
+    float rLimit = 0.5F - rRacketSize / 2;
+    if (*es.prRacket > rLimit)
+        *es.prRacket = rLimit;
+    else if (*es.prRacket < -rLimit)
+        *es.prRacket = -rLimit;
+}
+
+void ApplyRacketCommand(RacketCommand cmd)
+{
+    if (cmd == RacketCommand::Down)
+        *es.prRacket -= rRacketStep;
+    else if (cmd == RacketCommand::Up)
+        *es.prRacket += rRacketStep;
+    if (cmd != RacketCommand::Silent)
+        ClampRacket();
+}
+
+void JitterRacket(float rAmplitude)
+{
+    if (rAmplitude <= 0.F)
+        return;
+    *es.prRacket += (float)((rng() * 2. - 1.) * rAmplitude);
+    ClampRacket();
+}
+
 void UpdateWorld(vector<float> &vr_PhaseSpacePoint)
 {
-    if (!es.prRacket) {
-        es.prRacket = &((pair<pair<float, float>, float> *)es.pprr_Ball)->second;
+    if (!es.bReady) {
+        es.pst->racket_size = rRacketSize;
         es.ResetRacket();
         es.ResetBall();
+        es.bReady = true;
     }
 
     vr_PhaseSpacePoint[0] = es.pprr_Ball->first;
@@ -26,7 +59,7 @@ void UpdateWorld(vector<float> &vr_PhaseSpacePoint)
     else {
         bool bnegx = es.pprr_Ball->first < 0.;
         es.pprr_Ball->first += prr_BallSpeed.first;
-        if (es.pprr_Ball->first < -0.5F && es.pprr_Ball->second > *es.prRacket - RACKET_SIZE / 2 && es.pprr_Ball->second < *es.prRacket + RACKET_SIZE / 2) {
+        if (es.pprr_Ball->first < -0.5F && es.pprr_Ball->second > *es.prRacket - rRacketSize / 2 && es.pprr_Ball->second < *es.prRacket + rRacketSize / 2) {
             es.pprr_Ball->first = -0.5F;   // REWARD
             prr_BallSpeed.first = -prr_BallSpeed.first;
         }

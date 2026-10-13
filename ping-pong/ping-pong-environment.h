@@ -7,9 +7,33 @@
 #include <NetworkConfigurator.h>
 #endif
 
+// .specs/2026-10-13_ping-pong-imitation-learning.md
+
 #define ENVIRONMENT_STATE_SHARED_MEMORY_NAME "ping-pong-environment.sm"
 
-#define RACKET_SIZE 0.18F
+const float DEFAULT_RACKET_SIZE = 0.18F;
+
+struct SharedEnvironmentState
+{
+    float x;
+    float y;
+    float racket_y;
+    float racket_size;
+};
+
+enum class RacketCommand
+{
+    Silent,
+    Down,
+    Up
+};
+
+extern float rRacketSize;
+extern float rRacketStep;
+extern float rMovementThreshold;
+
+void ApplyRacketCommand(RacketCommand cmd);
+void JitterRacket(float rAmplitude);
 
 #ifdef FOR_LINUX
 #define DYNAMIC_LIBRARY_EXPORTED_CLASS

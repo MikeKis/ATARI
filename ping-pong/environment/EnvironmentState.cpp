@@ -1,3 +1,4 @@
+// .specs/2026-10-13_ping-pong-imitation-learning.md
 #define _USE_MATH_DEFINES
 
 #include "EnvironmentState.hpp"
@@ -45,4 +46,4 @@ void EnvironmentState::ResetBall(bool bPunishment)
 
 }
 
-void EnvironmentState::ResetRacket() {*prRacket = (float)(-0.5 + RACKET_SIZE / 2 + rng(1. - RACKET_SIZE));}
+void EnvironmentState::ResetRacket() {*prRacket = (float)(-0.5 + rRacketSize / 2 + rng(1. - rRacketSize));}

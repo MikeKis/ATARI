@@ -6,6 +6,9 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <SFML/Graphics.hpp>
 
+// .specs/2026-10-13_ping-pong-imitation-learning.md
+#include <cstring>
+
 #include "../ping-pong-environment.h"
 
 #define RASTER_SIZE 200   // It is for the range [0, 1] while the whole picture range is [-1, 1].
@@ -19,23 +22,19 @@ class EnvironmentState
 	unique_ptr<shared_memory_object> shm;
 	unique_ptr<mapped_region>        region;
 public:
-	volatile pair<float, float> *pprr_Ball;
-	volatile float              *prRacket = NULL;
+	volatile SharedEnvironmentState *pst = NULL;
 	EnvironmentState()
 	{
 		try {
-			//Create a shared memory object.
 			shm.reset(new shared_memory_object(open_or_create, ENVIRONMENT_STATE_SHARED_MEMORY_NAME, read_write));
 			cout << ENVIRONMENT_STATE_SHARED_MEMORY_NAME " created\n";
-			//Set size
-			shm->truncate(sizeof(pair<pair<float, float>, float>));
+			shm->truncate(sizeof(SharedEnvironmentState));
 			cout << ENVIRONMENT_STATE_SHARED_MEMORY_NAME " size set\n";
 
-			//Map the whole shared memory in this process
-			region.reset(new mapped_region(*shm, read_only));
+			region.reset(new mapped_region(*shm, read_write));
 			cout << ENVIRONMENT_STATE_SHARED_MEMORY_NAME " mapped\n";
-			pprr_Ball = (volatile pair<float, float> *)region->get_address();
-			prRacket = &((volatile pair<pair<float, float>, float> *)pprr_Ball)->second;
+			pst = (volatile SharedEnvironmentState *)region->get_address();
+			memset((void *)pst, 0, sizeof(SharedEnvironmentState));
 		} catch (...) {
 			cout << "Cannot access " ENVIRONMENT_STATE_SHARED_MEMORY_NAME "\n";
 			exit(-1);
@@ -58,8 +57,6 @@ int main(int ARGC, char *ARGV[])
 	circle.setFillColor(sf::Color::White);
 	circle.setOrigin(SPOT_HALFSIZE_PIXEL, SPOT_HALFSIZE_PIXEL);
 	sf::RectangleShape rectangle;
-	rectangle.setSize(sf::Vector2f(3, RACKET_SIZE * RASTER_SIZE));
-	rectangle.setOrigin(0, RACKET_SIZE / 2 * RASTER_SIZE);
 	rectangle.setFillColor(sf::Color::White);
 
 	// Start the game loop
@@ -76,9 +73,12 @@ int main(int ARGC, char *ARGV[])
 
 		// Clear screen
 		window.clear();
-		circle.setPosition(rPixelX(es.pprr_Ball->first), rPixelY(es.pprr_Ball->second));
+		float rSize = es.pst->racket_size > 0.F ? es.pst->racket_size : DEFAULT_RACKET_SIZE;
+		rectangle.setSize(sf::Vector2f(3, rSize * RASTER_SIZE));
+		rectangle.setOrigin(0, rSize / 2 * RASTER_SIZE);
+		circle.setPosition(rPixelX(es.pst->x), rPixelY(es.pst->y));
 		window.draw(circle);
-		rectangle.setPosition(0, rPixelY(*es.prRacket));
+		rectangle.setPosition(0, rPixelY(es.pst->racket_y));
 		window.draw(rectangle);
 
 		// Update the window

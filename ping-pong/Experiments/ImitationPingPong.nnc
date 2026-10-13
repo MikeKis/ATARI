@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- .specs/2026-10-13_ping-pong-imitation-learning.md
+     Short run: 3000/1000/1000 intervals of P=15 (45000 / 60000 / 75000).
+     One copy, three learners per action, so the OUT pair is the only WTA of size 2. -->
+<SNN model="smooth">
+  <RECEPTORS name="Punishment" n="1">
+    <Implementation lib="ping-pong-environment"></Implementation>
+  </RECEPTORS>
+  <RECEPTORS name="Reward" n="1">
+    <Implementation lib="ping-pong-environment"></Implementation>
+  </RECEPTORS>
+  <RECEPTORS name="R" n="108">
+    <Implementation lib="ping-pong-environment">
+      <args>
+        <after_reward_silence>0</after_reward_silence>
+      </args>
+    </Implementation>
+  </RECEPTORS>
+  <RECEPTORS name="Actions" n="2">
+    <Implementation lib="ping-pong-environment">
+      <args>
+        <action_period>15</action_period>
+        <learning_time>45000</learning_time>
+        <racket_size>0.18</racket_size>
+      </args>
+    </Implementation>
+  </RECEPTORS>
+  <NETWORK ncopies="1" merge="yes">
+    <Sections>
+      <Section name="L">
+        <props>
+          <n>6</n>
+          <Structure type="L">
+            <dim>3</dim>
+            <dim>2</dim>
+          </Structure>
+          <chartime>5</chartime>
+          <stochastic_stimulation>0.873023</stochastic_stimulation>
+          <hebbian_plasticity>-0.0651983</hebbian_plasticity>
+          <dopamine_plasticity_time>18</dopamine_plasticity_time>
+          <maxTSSISI>14</maxTSSISI>
+          <stability_resource_change_ratio>0.01</stability_resource_change_ratio>
+          <minweight>-0.219779</minweight>
+          <maxweight>0.121525</maxweight>
+          <nsilentsynapses>0</nsilentsynapses>
+          <threshold_excess_weight_dependent>0.2</threshold_excess_weight_dependent>
+        </props>
+      </Section>
+      <Section name="OUT">
+        <props>
+          <n>2</n>
+        </props>
+      </Section>
+      <Section name="BIASGATE">
+        <props>
+          <n>2</n>
+        </props>
+      </Section>
+      <Link from="R" to="L" type="signal">
+        <iniresource>0.617</iniresource>
+        <delay>1</delay>
+        <probability>1</probability>
+      </Link>
+      <Link from="L" to="L" policy="all-to-all-sections" type="gating">
+        <weight>-10</weight>
+      </Link>
+      <Link from="Actions" to="L" policy="aligned" type="reward">
+        <weight>0.0576746</weight>
+        <delay>3</delay>
+      </Link>
+      <Link from="L" to="OUT" policy="aligned"></Link>
+      <Link from="OUT" to="BIASGATE" policy="aligned" type="gating">
+        <weight>-10</weight>
+      </Link>
+      <Link from="BIASGATE" to="OUT" policy="aligned" type="gating">
+        <weight>-3</weight>
+      </Link>
+      <Link from="Actions" to="BIASGATE" policy="aligned"></Link>
+      <Link from="BIASGATE" to="L" policy="aligned"></Link>
+<!--MUTUAL_SUPPRESSION-->
+      <Link from="OUT" to="OUT" policy="all-to-all" type="gating">
+        <weight>-15</weight>
+      </Link>
+<!--/MUTUAL_SUPPRESSION-->
+    </Sections>
+  </NETWORK>
+  <Readout lib="ping-pong-environment">
+    <output>OUT</output>
+    <args>
+      <start_time>45000</start_time>
+      <agent_start_time>60000</agent_start_time>
+      <fitness>f1</fitness>
+      <log_period>15000</log_period>
+      <window>500</window>
+      <racket_jitter>0.25</racket_jitter>
+      <jitter_every>10</jitter_every>
+      <report_file>imitation_smoke_report.txt</report_file>
+    </args>
+  </Readout>
+</SNN>

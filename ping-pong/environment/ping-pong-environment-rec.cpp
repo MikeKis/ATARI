@@ -4,6 +4,7 @@ Copyright (C) 2022 Mikhail Kiselev
 Emulates ping-pong game.
 
 */
+// .specs/2026-10-13_ping-pong-imitation-learning.md
 
 #define _USE_MATH_DEFINES
 
@@ -36,7 +37,21 @@ int nRewards = 0;
 int nPunishments = 0;
 int nRewardsTot = 0;
 int nPunishmentsTot = 0;
+extern int nAgentStartTime;
+extern int nRewardsAgent;
+extern int nPunishmentsAgent;
 int InputBlockCounter = 0;
+
+int nActionCommandPeriod = 1;
+int nAfterRewardSilence = afterRewardSilence;
+bool bDumpState = false;
+bool bGridTact = false;
+bool bFlyingLeft = false;
+RacketCommand cmdTeacher = RacketCommand::Silent;
+int nLabelUntil = 0;
+int nTeacherDown = 0;
+int nTeacherUp = 0;
+int nLeftDecisions = 0;
 
 class DYNAMIC_LIBRARY_EXPORTED_CLASS Evaluator: public IReceptors
 {
@@ -67,6 +82,8 @@ public:
                                 PeriodCounter = 1;
                                 if (ntact >= tactStart)
                                     ++nPunishmentsTot;
+                                if (ntact >= nAgentStartTime)
+                                    ++nPunishmentsAgent;
                                 ++nPunishments;
                              }
                              break;
@@ -75,6 +92,8 @@ public:
                                 PeriodCounter = 1;
                                 if (ntact >= tactStart)
                                     ++nRewardsTot;
+                                if (ntact >= nAgentStartTime)
+                                    ++nRewardsAgent;
                                 ++nRewards;
                              }
                              break;
@@ -85,7 +104,7 @@ public:
             *pfl = 1;
             PeriodCounter = RewardTrainPeriod;
             --TrainCounter;
-            InputBlockCounter = afterRewardSilence;
+            InputBlockCounter = nAfterRewardSilence;
         }
         return true;
     }
@@ -122,12 +141,25 @@ protected:
         ++ntact;
         UpdateWorld(vr_CurrentPhaseSpacePoint);
 
-        static ofstream ofsState("ping_pong_state.csv");
-        if (ofsState.is_open()) {
-            ofsState << ntact;
-            for (auto z: vr_CurrentPhaseSpacePoint)
-                ofsState << ',' << z;
-            ofsState << endl;
+        static ofstream ofsState;
+        static ofstream ofsStateDiscrete;
+        static bool bDumpOpened = false;
+        if (bDumpState) {
+            if (!bDumpOpened) {
+                ofsState.open("ping_pong_state.csv");
+                ofsStateDiscrete.open("ping_pong_state_discrete.csv");
+                bDumpOpened = true;
+                if (ofsState.is_open())
+                    ofsState << "ntact,x,y,vx,vy,ry\n";
+                if (ofsStateDiscrete.is_open())
+                    ofsStateDiscrete << "ntact,x,y,vx,vy,ry\n";
+            }
+            if (ofsState.is_open()) {
+                ofsState << ntact;
+                for (auto z: vr_CurrentPhaseSpacePoint)
+                    ofsState << ',' << z;
+                ofsState << endl;
+            }
         }
 
         indxBall = (int)((vr_CurrentPhaseSpacePoint[0] + 0.5) / (1. / nSpatialZones));
@@ -152,8 +184,7 @@ protected:
             set_input_spike(nSpatialZones * 2 + nVelocityZones + indvyBall);
             set_input_spike(nSpatialZones * 2 + nVelocityZones * 2 + indRacket);
 
-            static ofstream ofsStateDiscrete("ping_pong_state_discrete.csv");
-            if (ofsStateDiscrete.is_open()) 
+            if (bDumpState && ofsStateDiscrete.is_open())
                 ofsStateDiscrete << ntact << ',' << indxBall << ',' << indyBall << ',' << indvxBall << ',' << indvyBall << ',' << indRacket << endl;
 
         } else --InputBlockCounter;
@@ -221,11 +252,12 @@ public:
     {
         IReceptors::LoadStatus(ser);
         ser >> *es.pprr_Ball;
-        es.prRacket = &((pair<pair<float, float>, float> *)es.pprr_Ball)->second;
+        es.prRacket = &es.pst->racket_y;
         ser >> *es.prRacket;
         ser >> prr_BallSpeed;
         ser >> vr_VelocityZoneBoundary;
         ser >> rng;
+        es.bReady = true;
     }
 };
 
@@ -237,8 +269,6 @@ static const float LEFT_WALL_X   = -0.5F;
 static const float RIGHT_WALL_X  =  0.5F;
 static const float BOTTOM_WALL_Y = -0.5F;
 static const float TOP_WALL_Y    =  0.5F;
-
-int nActionCommandPeriod = 1;
 
 static float rFoldToSegment(float rValue, float rLeft, float rRight)
 {
@@ -270,8 +300,6 @@ static float rTargetYAtLeftWall(void)
 
 class DYNAMIC_LIBRARY_EXPORTED_CLASS Actions: public IReceptors
 {
-    float rPastRY = BIGREALNUMBER;
-    int   CommandCooldown = 0;
 protected:
     virtual void GetMeanings(VECTOR<STRING> &vstr_Meanings) const override
     {
@@ -283,36 +311,49 @@ public:
     Actions() {}
     virtual bool bGenerateSignals(unsigned *pfl, int bitoffset) override
     {
+        bGridTact = nActionCommandPeriod > 0 && ntact % nActionCommandPeriod == 0;
+        bFlyingLeft = vr_CurrentPhaseSpacePoint[2] < 0.F;
+        cmdTeacher = RacketCommand::Silent;
+        *pfl = 0;
+        if (!bGridTact)
+            return true;
+        if (!bFlyingLeft)
+            return true;
+        ++nLeftDecisions;
         float rTargetY = rTargetYAtLeftWall();
         float rRacketY = vr_CurrentPhaseSpacePoint[4];
-        float rMovementThreshold = 0.5F / nSpatialZones;
-
-        *pfl = 0;
-        if (fabs(rTargetY - rRacketY) > rMovementThreshold) {
-            if (CommandCooldown <= 0) {
-                *pfl = rTargetY > rRacketY ? 2 : 1;
-                CommandCooldown = nActionCommandPeriod > 1 ? nActionCommandPeriod - 1 : 0;
-            } else
-                --CommandCooldown;
-        } else
-            CommandCooldown = 0;
-
-        rPastRY = rTargetY;
+        if (fabs(rTargetY - rRacketY) > rMovementThreshold)
+            cmdTeacher = rTargetY > rRacketY ? RacketCommand::Up : RacketCommand::Down;
+        if (nLabelUntil != 0 && ntact >= nLabelUntil)
+            return true;
+        if (cmdTeacher == RacketCommand::Down) {
+            *pfl |= 1u << bitoffset;
+            ++nTeacherDown;
+        } else if (cmdTeacher == RacketCommand::Up) {
+            *pfl |= 2u << bitoffset;
+            ++nTeacherUp;
+        }
         return true;
     }
     virtual void Randomize(void) override {};
     virtual void SaveStatus(Serializer &ser) const override
     {
         IReceptors::SaveStatus(ser);
-        ser << rPastRY;
-        ser << CommandCooldown;
+        ser << nActionCommandPeriod;
+        ser << nLabelUntil;
+        ser << rRacketStep;
+        ser << rRacketSize;
+        ser << rMovementThreshold;
     }
     virtual ~Actions() = default;
     void LoadStatus(Serializer &ser)
     {
         IReceptors::LoadStatus(ser);
-        ser >> rPastRY;
-        ser >> CommandCooldown;
+        ser >> nActionCommandPeriod;
+        ser >> nLabelUntil;
+        ser >> rRacketStep;
+        ser >> rRacketSize;
+        ser >> rMovementThreshold;
     }
 };
 
@@ -325,11 +366,57 @@ RECEPTORS_SET_PARAMETERS(pchMyReceptorSectionName, nReceptors, xn)
 		case 1: nReceptors = 1;
 			    return new Evaluator(Evaluator::reward);
 		case 2: nReceptors = nInputs;
+                {
+                    int nSilence = afterRewardSilence;
+                    bool bDump = false;
+                    GetAllParameters(xn, "after_reward_silence", &nSilence, "dump_state", &bDump);
+                    if (nSilence < 0) {
+                        cout << "after_reward_silence must be >= 0\n";
+                        exit(-1);
+                    }
+                    nAfterRewardSilence = nSilence;
+                    bDumpState = bDump;
+                }
 			    return new rec_ping_pong;
         case 3: nReceptors = 2;
-                nActionCommandPeriod = atoi_s(xn.child("action_period").child_value());
-                if (nActionCommandPeriod <= 0)
-                    nActionCommandPeriod = 1;
+                {
+                    int nPeriod = 1;
+                    int nLearn = 0;
+                    float rStep = 1.F / nSpatialZones;
+                    float rSize = DEFAULT_RACKET_SIZE;
+                    float rThreshold = 0.5F / nSpatialZones;
+                    GetAllParameters(xn,
+                        "action_period", &nPeriod,
+                        "learning_time", &nLearn,
+                        "racket_step", &rStep,
+                        "racket_size", &rSize,
+                        "movement_threshold", &rThreshold);
+                    if (xn.child("action_period") && nPeriod < 4) {
+                        cout << "action_period must be >= 4\n";
+                        exit(-1);
+                    }
+                    if (nLearn < 0) {
+                        cout << "learning_time must be >= 0\n";
+                        exit(-1);
+                    }
+                    if (!(rStep > 0.F)) {
+                        cout << "racket_step must be > 0\n";
+                        exit(-1);
+                    }
+                    if (!(rSize > 0.F) || rSize >= 1.F) {
+                        cout << "racket_size must be in (0, 1)\n";
+                        exit(-1);
+                    }
+                    if (rThreshold < 0.F) {
+                        cout << "movement_threshold must be >= 0\n";
+                        exit(-1);
+                    }
+                    nActionCommandPeriod = nPeriod;
+                    nLabelUntil = nLearn;
+                    rRacketStep = rStep;
+                    rRacketSize = rSize;
+                    rMovementThreshold = rThreshold;
+                }
                 return new Actions;
         default: cout << "ping-pong -- Too many calls of SetParametersIn\n";
 				exit(-1);

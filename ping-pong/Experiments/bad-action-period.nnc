@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- .specs/2026-10-13_ping-pong-imitation-learning.md -->
+<SNN model="smooth">
+  <RECEPTORS name="Punishment" n="1">
+    <Implementation lib="ping-pong-environment"></Implementation>
+  </RECEPTORS>
+  <RECEPTORS name="Reward" n="1">
+    <Implementation lib="ping-pong-environment"></Implementation>
+  </RECEPTORS>
+  <RECEPTORS name="R" n="108">
+    <Implementation lib="ping-pong-environment"></Implementation>
+  </RECEPTORS>
+  <RECEPTORS name="Actions" n="2">
+    <Implementation lib="ping-pong-environment">
+      <args>
+        <action_period>2</action_period>
+      </args>
+    </Implementation>
+  </RECEPTORS>
+  <NETWORK>
+    <Sections>
+      <Section name="OUT">
+        <props><n>2</n></props>
+      </Section>
+    </Sections>
+  </NETWORK>
+  <Readout lib="ping-pong-environment">
+    <output>OUT</output>
+    <args></args>
+  </Readout>
+</SNN>

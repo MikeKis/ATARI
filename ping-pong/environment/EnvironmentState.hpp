@@ -1,3 +1,4 @@
+// .specs/2026-10-13_ping-pong-imitation-learning.md
 #ifndef ENVIRONMENTSTATE_HPP
 #define ENVIRONMENTSTATE_HPP
 
@@ -15,10 +16,12 @@ class EnvironmentState
     std::unique_ptr<boost::interprocess::shared_memory_object> shm;
     std::unique_ptr<boost::interprocess::mapped_region>        region;
     std::string                                                strSharedMemoryName;
-    std::pair<std::pair<float, float>, float>                  pprrr_LocalState;
+    SharedEnvironmentState                                     LocalState = {};
 public:
-    std::pair<float, float> *pprr_Ball;
+    SharedEnvironmentState  *pst = NULL;
+    std::pair<float, float> *pprr_Ball = NULL;
     float                   *prRacket = NULL;
+    bool                     bReady = false;
     EnvironmentState()
     {
         strSharedMemoryName = ENVIRONMENT_STATE_SHARED_MEMORY_NAME;
@@ -29,10 +32,11 @@ public:
             bExists = false;
         }
         if (bExists) {
-            //Map the whole shared memory in this process
             region.reset(new boost::interprocess::mapped_region(*shm, boost::interprocess::read_write));
-            pprr_Ball = (std::pair<float, float> *)region->get_address();
-        } else pprr_Ball = &pprrr_LocalState.first;
+            pst = (SharedEnvironmentState *)region->get_address();
+        } else pst = &LocalState;
+        pprr_Ball = (std::pair<float, float> *)&pst->x;
+        prRacket = &pst->racket_y;
     }
     void ResetBall(bool bPunishment = true);
     void ResetRacket();

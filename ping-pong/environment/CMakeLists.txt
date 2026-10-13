@@ -10,8 +10,10 @@ add_library(${PROJECT_NAME} SHARED
   UpdateWorld.cpp
   AdaptiveSpikeSource.cpp
   EnvironmentState.cpp
+  ImitationScorer.cpp
   ../ping-pong-environment.h
   EnvironmentState.hpp
+  ImitationScorer.hpp
   AdaptiveSpikeSource.hpp
   ../../pugixml-1.10/src/pugixml.cpp
 )

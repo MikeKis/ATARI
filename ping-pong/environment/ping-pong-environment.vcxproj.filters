@@ -21,6 +21,9 @@
     <ClInclude Include="EnvironmentState.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ImitationScorer.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="..\ping-pong-environment.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -36,6 +39,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="EnvironmentState.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ImitationScorer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="ping-pong-environment-rea.cpp">

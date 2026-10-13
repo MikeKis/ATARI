@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- .specs/2026-10-13_ping-pong-imitation-learning.md
+     Same forcing path as teacher-echo.nnc. The network moves the racket, so its
+     position at tact n+P matches the teacher run at tact n. -->
+<SNN model="smooth">
+  <RECEPTORS name="Punishment" n="1">
+    <Implementation lib="ping-pong-environment"></Implementation>
+  </RECEPTORS>
+  <RECEPTORS name="Reward" n="1">
+    <Implementation lib="ping-pong-environment"></Implementation>
+  </RECEPTORS>
+  <RECEPTORS name="R" n="108">
+    <Implementation lib="ping-pong-environment">
+      <args>
+        <after_reward_silence>0</after_reward_silence>
+        <dump_state></dump_state>
+      </args>
+    </Implementation>
+  </RECEPTORS>
+  <RECEPTORS name="Actions" n="2">
+    <Implementation lib="ping-pong-environment">
+      <args>
+        <action_period>15</action_period>
+        <learning_time>0</learning_time>
+      </args>
+    </Implementation>
+  </RECEPTORS>
+  <NETWORK>
+    <Sections>
+      <Section name="OUT">
+        <props>
+          <n>2</n>
+        </props>
+      </Section>
+      <Link from="Actions" to="OUT" policy="aligned"></Link>
+    </Sections>
+  </NETWORK>
+  <Readout lib="ping-pong-environment">
+    <output>OUT</output>
+    <args>
+      <start_time>0</start_time>
+      <agent_start_time>0</agent_start_time>
+      <fitness>f1</fitness>
+      <log_period>100000</log_period>
+      <racket_jitter>0</racket_jitter>
+      <report_file>echo_agent_report.txt</report_file>
+    </args>
+  </Readout>
+</SNN>

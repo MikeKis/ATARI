@@ -166,12 +166,14 @@
     <ClInclude Include="..\ping-pong-environment.h" />
     <ClInclude Include="AdaptiveSpikeSource.hpp" />
     <ClInclude Include="EnvironmentState.hpp" />
+    <ClInclude Include="ImitationScorer.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\pugixml-1.10\src\pugixml.cpp" />
     <ClCompile Include="AdaptiveSpikeSource.cpp" />
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="EnvironmentState.cpp" />
+    <ClCompile Include="ImitationScorer.cpp" />
     <ClCompile Include="ping-pong-environment-rea.cpp" />
     <ClCompile Include="ping-pong-environment-rec.cpp" />
     <ClCompile Include="ping-pong-environment-ver.cpp" />
