@@ -21,7 +21,7 @@
         <learning_time>$(LEARNING_TIME)</learning_time>
         <racket_size>0.18</racket_size>
         <racket_step>0.0333333</racket_step>
-        <movement_threshold>0.0166667</movement_threshold>
+        <movement_threshold>0.03</movement_threshold>
       </args>
     </Implementation>
   </RECEPTORS>
