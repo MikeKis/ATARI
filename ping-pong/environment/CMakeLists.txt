@@ -24,7 +24,7 @@ set(ROOT_NAMESPACE ping-pong-environment)
 # Output directory
 ################################################################################
 set_target_properties(${PROJECT_NAME} PROPERTIES
-        LIBRARY_OUTPUT_DIRECTORY    "${CMAKE_CURRENT_SOURCE_DIR}/../../Experiments"
+        LIBRARY_OUTPUT_DIRECTORY    "${CMAKE_CURRENT_SOURCE_DIR}/../Experiments"
         PREFIX ""
 )
 
