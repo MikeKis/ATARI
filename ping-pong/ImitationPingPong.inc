@@ -17,8 +17,9 @@
 //#define USE_CPU
 #define EMULATOR "ArNIGPU"
 #define RECOGNIZER ""
+#define NNPFILE "ImitationPingPong.nnp"
 
-#define SMOKE_GA
+//#define SMOKE_GA
 
 #define ACTION_PERIOD 15
 #define DOPAMINE_PLASTICITY_TIME (ACTION_PERIOD + 3)
@@ -36,7 +37,7 @@
 #define NLEARNINGEXAMPLES 60000
 #define NTESTEXAMPLES 10000
 #define NAGENTEXAMPLES 10000
-#define NNETWORKCOPIES 15
+#define NNETWORKCOPIES 1
 #endif
 #define LEARNING_TIME (ACTION_PERIOD * NLEARNINGEXAMPLES)
 #define AGENT_START (LEARNING_TIME + ACTION_PERIOD * NTESTEXAMPLES)
@@ -57,9 +58,7 @@ OPTIMIZATION_SPACE_DEFINITION
     OPTIMIZED_VARIABLE(STEPS_TO_HINGE, 3., 300.),
     OPTIMIZED_VARIABLE_INT(NLEARNINGGROUPS, 1, 30),
     OPTIMIZED_VARIABLE(WTHREXCESS, 0.001, 0.3),
-    OPTIMIZED_VARIABLE(STOCHASTICSTIMULATION, 0.001, 1.),
-    OPTIMIZED_VARIABLE_INT(NSILENTSYNAPSES, 1, 3000),
-    OPTIMIZED_VARIABLE(SPARSITY, 0.001, 1.)
+    OPTIMIZED_VARIABLE(STOCHASTICSTIMULATION, 0.001, 1.)
 };
 
 GENE_DEPENDENCIES
@@ -68,7 +67,7 @@ GENE_DEPENDENCIES
     GENE_DEPENDENCY(LINEARIZED_PLASTICITY, STEPS_TO_HINGE)
 };
 
-bool bNoFatalDefect(const vector<float> &vr_) {return nint(V(NLEARNINGGROUPS)) >= 1 && V(SPARSITY) <= 1. && V(STOCHASTICSTIMULATION) < 1.;}
+bool bNoFatalDefect(const vector<float> &vr_) {return nint(V(NLEARNINGGROUPS)) >= 1;}
 
 int StructuralCriterion(int)
 {
@@ -82,7 +81,9 @@ EVALUATOR
     if (!bNoFatalDefect(vr_))
             return pair<double, double>();
 
-    SETNNP(".." FOLDER_SEPARATOR "Experiments" FOLDER_SEPARATOR "ImitationPingPong.nnp");
+//------------------------------------------------------------------------------------------------
+// $$$ SPECIFY NNP FILE
+    SETNNP(".." FOLDER_SEPARATOR "Experiments" FOLDER_SEPARATOR NNPFILE);
 
     EXCLUDESECTION("ONE_FACTOR_PLASTICITY");
     SUBMACRO(NNETWORKCOPIES);
@@ -92,8 +93,8 @@ EVALUATOR
     SUBMACRO(LEARNING_TIME);
     SUBMACRO(AGENT_START);
     SUBMACRO(NTARGETCLASSES);
-    SUBVALUE("RACKET_JITTER", RACKET_JITTER);
-    SUBVALUE("JITTER_EVERY", JITTER_EVERY);
+    SUBMACRO(RACKET_JITTER);
+    SUBMACRO(JITTER_EVERY);
     SUBVALUE("PLASTICITY_MODEL", V(LINEARIZED_PLASTICITY) ? "linearized" : "smooth");
     SUBVALUE("OUTPUT", "OUT");
     SUBVALUE("INPUT", "R");
@@ -114,15 +115,15 @@ EVALUATOR
         SUBVALUE("INIRESOURCE0", rWeight0Resource(-V(MINWEIGHT), V(MAXWEIGHT)));
     }
     SUBV(WTHREXCESS);
-    SUBV(SPARSITY);
     SUBVALUE("INPUT_DELAY", 1);
-    SUBVINT(NSILENTSYNAPSES);
+    SUBVALUE("SPARSITY", 1);
+    SUBVALUE("NSILENTSYNAPSES", 0);
     SUBVINT(NLEARNINGGROUPS);
 
     unsigned CurrentExperiment = STARTING_EXPERIMENT_ID + indinPack;
 
     char buf[3000];
-    sprintf(buf, "%d.nnc", CurrentExperiment);
+    sprintf(buf, ".." FOLDER_SEPARATOR "Experiments" FOLDER_SEPARATOR "%d.nnc", CurrentExperiment);
     ofstream ofs(buf);
     SAVENNC(ofs);
     ofs.close();
@@ -152,15 +153,21 @@ EVALUATOR
             mutLog.lock();
             ofsTaskLog << "Experiment " << CurrentExperiment << " - " << EMULATOR << " started at " << boost::posix_time::second_clock::local_time() << std::endl;
             mutLog.unlock();
-            sprintf(buf + 300, "-T%d", MAXEMULATIONTIME);
             vstr_argsEmulator.resize(3);
-            vstr_argsEmulator[0] = ".";
+	    vstr_argsEmulator[0] = ".." FOLDER_SEPARATOR "Experiments";
             vstr_argsEmulator[1] = buf;
             vstr_argsEmulator[2] = "-R";
+//------------------------------------------------------------------------------------------------
+// Set additional simulator command line options. 
             vstr_argsEmulator.push_back("-f" + str(LEARNING_TIME));
+//------------------------------------------------------------------------------------------------
 #ifndef USE_CPU
-            sprintf(buf + 100, "-C%d", SelectedDevice);
-            vstr_argsEmulator.push_back(buf + 100);
+	    sprintf(buf + 100, "-C%d", SelectedDevice);
+	    vstr_argsEmulator.push_back(buf + 100);
+#endif
+#ifdef MAXEMULATIONTIME
+	    sprintf(buf + 100, "-T%d", MAXEMULATIONTIME);
+	    vstr_argsEmulator.push_back(buf + 100);
 #endif
             imd = IncrementalMean_Dispersion();
             FORI(nTests) {
