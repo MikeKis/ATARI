@@ -150,7 +150,7 @@
     exe, — символические ссылки на файлы в `C:/SNN/ArNI/Workplace`. Собственная
     `ping-pong-environment.dll` собирается в `ping-pong/Experiments` и в `Workplace`
     попадает ссылкой. `ArNI_OPT.inc`, который читает SuperArNI и ArNI_GA, — ссылка на
-    `ping-pong/Experiments/ImitationPingPong.inc`. Копий этих файлов нет. Так делается
+    `ping-pong/ImitationPingPong.inc`. Копий этих файлов нет. Так делается
     всегда: нужный файл ArNI подключается ссылкой, а не копией.
 
 ## Как устроено сейчас
@@ -294,11 +294,12 @@
       вес `-$(ACTION_PERIOD)` (решение 3); в базовом `.nnc` блок присутствует;
     - `Readout lib="ping-pong-environment"` с `output = OUT`, `args` из п. 8 и
       `racket_jitter = $(RACKET_JITTER)`, `jitter_every = $(JITTER_EVERY)`.
-17. `ping-pong/Experiments/ImitationPingPong.inc` — файл задачи ArNI_GA по образцу
-    `C:/SNN/ArNI/tests/MNIST.inc`: гены `DWPOS`, `RELDWNEG`,
-    `STABILITYRESOURCECHANGERATIO`, `LINEARIZED_PLASTICITY`, `MAXWEIGHT`, `MINWEIGHT`,
-    `B`, `STEPS_TO_HINGE`, `NLEARNINGGROUPS`, `WTHREXCESS`, `STOCHASTICSTIMULATION`,
-    `NSILENTSYNAPSES`, `SPARSITY`. Параметры сложности генами не являются (решение 10):
+17. `ping-pong/ImitationPingPong.inc` — файл задачи ArNI_GA. Запуск из
+    `ping-pong/Workplace`, поэтому `EVALUATOR` берёт сеть и пишет `.nnc` в
+    `../Experiments`. Гены: `DWPOS`, `RELDWNEG`, `STABILITYRESOURCECHANGERATIO`,
+    `LINEARIZED_PLASTICITY`, `MAXWEIGHT`, `MINWEIGHT`, `B`, `STEPS_TO_HINGE`,
+    `NLEARNINGGROUPS`, `WTHREXCESS`, `STOCHASTICSTIMULATION`. `NSILENTSYNAPSES = 0`,
+    `SPARSITY = 1` и `NNETWORKCOPIES = 1` зафиксированы. Параметры сложности генами не являются (решение 10):
     `#define ACTION_PERIOD 15`, `RACKET_STEP = 1/30`, `RACKET_SIZE = 0.18`,
     `RACKET_JITTER = 0.25`, `JITTER_EVERY = 10`. `EVALUATOR` подставляет
     `DOPAMINE_PLASTICITY_TIME = ACTION_PERIOD + 3`, `MAXTSSISI = ACTION_PERIOD - 1`,
@@ -464,5 +465,5 @@ seed (без `-R`).
    (`-p8 -M2`) — если на машине уже пересобран SuperArNI.
 6. Полный GA и запись порогов F1 и доли отбитых мячей в эту спеку (цель 6) выполняются
    на Linux-машине: CMake окружения, `Workplace/setup_links.sh`, симлинк
-   `ArNI/ArNI_OPT.inc` на `ping-pong/Experiments/ImitationPingPong.inc`, пересборка
+   `ArNI/ArNI_OPT.inc` на `ping-pong/ImitationPingPong.inc`, пересборка
    SuperArNI. Числовые пороги до этого прогона не заполняются.

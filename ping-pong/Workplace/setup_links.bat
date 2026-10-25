@@ -22,7 +22,7 @@ if not exist "%HERE%ping-pong-environment.dll" (
   mklink "%HERE%ping-pong-environment.dll" "%HERE%..\Experiments\ping-pong-environment.dll" || mklink /H "%HERE%ping-pong-environment.dll" "%HERE%..\Experiments\ping-pong-environment.dll"
 )
 if not exist "%HERE%ArNI_OPT.inc" (
-  mklink "%HERE%ArNI_OPT.inc" "%HERE%..\Experiments\ImitationPingPong.inc" || mklink /H "%HERE%ArNI_OPT.inc" "%HERE%..\Experiments\ImitationPingPong.inc"
+  mklink "%HERE%ArNI_OPT.inc" "%HERE%..\ImitationPingPong.inc" || mklink /H "%HERE%ArNI_OPT.inc" "%HERE%..\ImitationPingPong.inc"
 )
 echo Workplace links are in %HERE%
 echo On the Linux GA machine, also symlink ArNI/ArNI_OPT.inc to ImitationPingPong.inc and rebuild SuperArNI.

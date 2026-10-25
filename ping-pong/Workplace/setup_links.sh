@@ -21,6 +21,6 @@ fi
 if [ -e "$HERE/../Experiments/ping-pong-environment.dll" ]; then
   ln -sfn "$HERE/../Experiments/ping-pong-environment.dll" ping-pong-environment.dll
 fi
-ln -sfn "$HERE/../Experiments/ImitationPingPong.inc" ArNI_OPT.inc
+ln -sfn "$HERE/../ImitationPingPong.inc" ArNI_OPT.inc
 echo "Workplace links are in $HERE"
-echo "Point ArNI/ArNI_OPT.inc at Experiments/ImitationPingPong.inc and rebuild SuperArNI before the full GA."
+echo "Point ArNI/ArNI_OPT.inc at ping-pong/ImitationPingPong.inc and rebuild SuperArNI before the full GA."
