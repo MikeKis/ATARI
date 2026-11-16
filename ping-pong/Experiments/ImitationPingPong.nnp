@@ -99,7 +99,6 @@
       <agent_start_time>$(AGENT_START)</agent_start_time>
       <fitness>f1</fitness>
       <log_period>200000</log_period>
-      <window>2000</window>
       <racket_jitter>$(RACKET_JITTER)</racket_jitter>
       <jitter_every>$(JITTER_EVERY)</jitter_every>
       <report_file>imitation_report.txt</report_file>

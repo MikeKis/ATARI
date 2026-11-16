@@ -11,23 +11,19 @@
 class ImitationScorer
 {
     int  nCopies = 0;
-    int  nWindow = 1;
-    int  nFilled = 0;
-    int  iOldest = 0;
-    int  vnWindow[2][4] = {};
+    int  vnPeriod[2][4] = {};
     int  vnTest[2][4] = {};
     int  nTestDecisions = 0;
     int  nBothSpiked = 0;
     std::vector<unsigned char> vuc_Fired;
-    std::vector<unsigned char> vuc_Ring;
-    void PushWindow(unsigned char ucDown, unsigned char ucUp);
 public:
-    void Configure(int nOutputNeurons, int nWindowDecisions);
+    void Configure(int nOutputNeurons);
     void Observe(const int *pIds, int nIds);
     void ClearWindow(void);
+    void ResetPeriod(void);
     RacketCommand cmdTrigger(bool *pbBothSpiked);
     void Score(RacketCommand cmdTeacher, bool bTestPhase);
-    double dWindowF1(int iAction) const;
+    double dPeriodF1(int iAction) const;
     double dTestF1(int iAction) const;
     double dTestMeanF1(void) const;
     int NTestDecisions(void) const {return nTestDecisions;}

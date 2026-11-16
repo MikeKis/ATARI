@@ -40,7 +40,6 @@ static ImitationScorer scorer;
 static string strFitness = "f1";
 static string strReportFile;
 static int nLogPeriod = 200000;
-static int nWindowDecisions = 2000;
 static float rRacketJitter = 0.F;
 static int nJitterEvery = 10;
 static int nJitterShifts = 0;
@@ -54,13 +53,14 @@ static void Refuse(const char *pchParameter, const char *pchWhy)
 
 static void WriteF1(const char *pchPhase)
 {
-    double dDown = scorer.dWindowF1(0);
-    double dUp = scorer.dWindowF1(1);
+    double dDown = scorer.dPeriodF1(0);
+    double dUp = scorer.dPeriodF1(1);
     double dMean = 0.5 * (dDown + dUp);
     cout << "f1 tact " << ntact << " phase " << pchPhase
          << " down " << dDown << " up " << dUp << " mean " << dMean << endl;
     if (ofsReport.is_open())
         ofsReport << ntact << ',' << pchPhase << ',' << dDown << ',' << dUp << ',' << dMean << endl;
+    scorer.ResetPeriod();
 }
 
 READOUT_SET_PARAMETERS(ExperimentId, tactTermination, nOutputNeurons, xn)
@@ -71,7 +71,6 @@ READOUT_SET_PARAMETERS(ExperimentId, tactTermination, nOutputNeurons, xn)
     int nStart = 0;
     int nAgent = -1;
     int nLog = 200000;
-    int nWindow = 2000;
     float rJitter = 0.F;
     int nEvery = 10;
     string strFit = "f1";
@@ -82,15 +81,12 @@ READOUT_SET_PARAMETERS(ExperimentId, tactTermination, nOutputNeurons, xn)
         "fitness", &strFit,
         "log_period", &nLog,
         "report_file", &strReport,
-        "window", &nWindow,
         "racket_jitter", &rJitter,
         "jitter_every", &nEvery);
     if (strFit != "f1" && strFit != "hits")
         Refuse("fitness", "must be f1 or hits");
     if (nLog < 1)
         Refuse("log_period", "must be >= 1");
-    if (xn.child("window") && nWindow < 1)
-        Refuse("window", "must be >= 1");
     if (rJitter < 0.F)
         Refuse("racket_jitter", "must be >= 0");
     if (xn.child("jitter_every") && nEvery < 1)
@@ -105,14 +101,13 @@ READOUT_SET_PARAMETERS(ExperimentId, tactTermination, nOutputNeurons, xn)
     } else nAgentStartTime = tactTermination > 0 ? tactTermination : 0x7fffffff;
     strFitness = strFit;
     nLogPeriod = nLog;
-    nWindowDecisions = nWindow;
     rRacketJitter = rJitter;
     nJitterEvery = nEvery;
     strReportFile = strReport;
     nJitterShifts = 0;
     nRewardsAgent = 0;
     nPunishmentsAgent = 0;
-    scorer.Configure(nOutputNeurons, nWindowDecisions);
+    scorer.Configure(nOutputNeurons);
     if (strReportFile.length()) {
         ofsReport.open(strReportFile);
         if (!ofsReport.is_open())

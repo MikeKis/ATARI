@@ -23,19 +23,15 @@ static double dF1(int nTP, int nFP, int nFN)
     return 2. * dPrecision * dRecall / (dPrecision + dRecall);
 }
 
-void ImitationScorer::Configure(int nOutputNeurons, int nWindowDecisions)
+void ImitationScorer::Configure(int nOutputNeurons)
 {
     nCopies = nOutputNeurons / 2;
-    nWindow = nWindowDecisions < 1 ? 1 : nWindowDecisions;
-    nFilled = 0;
-    iOldest = 0;
     nTestDecisions = 0;
     nBothSpiked = 0;
     for (int a = 0; a < 2; ++a)
         for (int k = 0; k < 4; ++k)
-            vnWindow[a][k] = vnTest[a][k] = 0;
+            vnPeriod[a][k] = vnTest[a][k] = 0;
     vuc_Fired.assign(nCopies * 2, 0);
-    vuc_Ring.assign(nWindow * 2, 0);
 }
 
 void ImitationScorer::Observe(const int *pIds, int nIds)
@@ -50,6 +46,13 @@ void ImitationScorer::Observe(const int *pIds, int nIds)
 void ImitationScorer::ClearWindow(void)
 {
     fill(vuc_Fired.begin(), vuc_Fired.end(), 0);
+}
+
+void ImitationScorer::ResetPeriod(void)
+{
+    for (int a = 0; a < 2; ++a)
+        for (int k = 0; k < 4; ++k)
+            vnPeriod[a][k] = 0;
 }
 
 RacketCommand ImitationScorer::cmdTrigger(bool *pbBothSpiked)
@@ -74,24 +77,6 @@ RacketCommand ImitationScorer::cmdTrigger(bool *pbBothSpiked)
     return RacketCommand::Silent;
 }
 
-void ImitationScorer::PushWindow(unsigned char ucDown, unsigned char ucUp)
-{
-    unsigned char uc_[2] = {ucDown, ucUp};
-    int iWrite;
-    if (nFilled < nWindow)
-        iWrite = nFilled++;
-    else {
-        for (int a = 0; a < 2; ++a)
-            --vnWindow[a][vuc_Ring[iOldest * 2 + a]];
-        iWrite = iOldest;
-        iOldest = (iOldest + 1) % nWindow;
-    }
-    for (int a = 0; a < 2; ++a) {
-        vuc_Ring[iWrite * 2 + a] = uc_[a];
-        ++vnWindow[a][uc_[a]];
-    }
-}
-
 void ImitationScorer::Score(RacketCommand cmdTeacher, bool bTestPhase)
 {
     bool bBoth = false;
@@ -107,21 +92,20 @@ void ImitationScorer::Score(RacketCommand cmdTeacher, bool bTestPhase)
         if (vuc_Fired[c * 2 + 1])
             ++nVotes[1];
     }
-    unsigned char uc_[2];
     for (int a = 0; a < 2; ++a) {
         bool bTrig = nVotes[a] * 2 > nCopies;
-        uc_[a] = (unsigned char)nKind(bPositive[a], bTrig);
+        unsigned char uc = (unsigned char)nKind(bPositive[a], bTrig);
+        ++vnPeriod[a][uc];
         if (bTestPhase)
-            ++vnTest[a][uc_[a]];
+            ++vnTest[a][uc];
     }
     if (bTestPhase)
         ++nTestDecisions;
-    PushWindow(uc_[0], uc_[1]);
 }
 
-double ImitationScorer::dWindowF1(int iAction) const
+double ImitationScorer::dPeriodF1(int iAction) const
 {
-    return dF1(vnWindow[iAction][kindTP], vnWindow[iAction][kindFP], vnWindow[iAction][kindFN]);
+    return dF1(vnPeriod[iAction][kindTP], vnPeriod[iAction][kindFP], vnPeriod[iAction][kindFN]);
 }
 
 double ImitationScorer::dTestF1(int iAction) const

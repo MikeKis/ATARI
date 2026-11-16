@@ -91,7 +91,6 @@
       <agent_start_time>60000</agent_start_time>
       <fitness>f1</fitness>
       <log_period>15000</log_period>
-      <window>500</window>
       <racket_jitter>0.25</racket_jitter>
       <jitter_every>10</jitter_every>
       <report_file>imitation_smoke_report.txt</report_file>
