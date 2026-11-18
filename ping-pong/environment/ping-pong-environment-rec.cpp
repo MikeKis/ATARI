@@ -281,12 +281,10 @@ static float rFoldToSegment(float rValue, float rLeft, float rRight)
     return rLeft + rFolded * rLength;
 }
 
-static float rTargetYAtLeftWall(void)
+static float rHitYAtLeftWall(float vx, float vy)
 {
     float x0 = vr_CurrentPhaseSpacePoint[0];
     float y0 = vr_CurrentPhaseSpacePoint[1];
-    float vx = vr_CurrentPhaseSpacePoint[2];
-    float vy = vr_CurrentPhaseSpacePoint[3];
 
     if (x0 <= LEFT_WALL_X)
         return y0;
@@ -296,6 +294,28 @@ static float rTargetYAtLeftWall(void)
     float t = vx < 0.F ? (x0 - LEFT_WALL_X) / (-vx)
                        : (RIGHT_WALL_X - x0) / vx + (RIGHT_WALL_X - LEFT_WALL_X) / vx;
     return rFoldToSegment(y0 + vy * t, BOTTOM_WALL_Y, TOP_WALL_Y);
+}
+
+static void RotateVelocity(float vx, float vy, float rAngle, float *pvx, float *pvy)
+{
+    float c = cosf(rAngle);
+    float s = sinf(rAngle);
+    *pvx = vx * c - vy * s;
+    *pvy = vx * s + vy * c;
+}
+
+static void InterceptInterval(float rAngleTol, float *prLo, float *prHi)
+{
+    float vx = vr_CurrentPhaseSpacePoint[2];
+    float vy = vr_CurrentPhaseSpacePoint[3];
+    float vx1, vy1, vx2, vy2;
+    RotateVelocity(vx, vy, -rAngleTol, &vx1, &vy1);
+    RotateVelocity(vx, vy, rAngleTol, &vx2, &vy2);
+    float y0 = rHitYAtLeftWall(vx, vy);
+    float y1 = rHitYAtLeftWall(vx1, vy1);
+    float y2 = rHitYAtLeftWall(vx2, vy2);
+    *prLo = min(y0, min(y1, y2));
+    *prHi = max(y0, max(y1, y2));
 }
 
 class DYNAMIC_LIBRARY_EXPORTED_CLASS Actions: public IReceptors
@@ -320,10 +340,13 @@ public:
         if (!bFlyingLeft)
             return true;
         ++nLeftDecisions;
-        float rTargetY = rTargetYAtLeftWall();
+        float rLo, rHi;
+        InterceptInterval(rAngleTolerance, &rLo, &rHi);
         float rRacketY = vr_CurrentPhaseSpacePoint[4];
-        if (fabs(rTargetY - rRacketY) > rMovementThreshold)
-            cmdTeacher = rTargetY > rRacketY ? RacketCommand::Up : RacketCommand::Down;
+        if (rRacketY < rLo - rInterceptMargin)
+            cmdTeacher = RacketCommand::Up;
+        else if (rRacketY > rHi + rInterceptMargin)
+            cmdTeacher = RacketCommand::Down;
         if (nLabelUntil != 0 && ntact >= nLabelUntil)
             return true;
         if (cmdTeacher == RacketCommand::Down) {
@@ -343,7 +366,8 @@ public:
         ser << nLabelUntil;
         ser << rRacketStep;
         ser << rRacketSize;
-        ser << rMovementThreshold;
+        ser << rAngleTolerance;
+        ser << rInterceptMargin;
     }
     virtual ~Actions() = default;
     void LoadStatus(Serializer &ser)
@@ -353,7 +377,8 @@ public:
         ser >> nLabelUntil;
         ser >> rRacketStep;
         ser >> rRacketSize;
-        ser >> rMovementThreshold;
+        ser >> rAngleTolerance;
+        ser >> rInterceptMargin;
     }
 };
 
@@ -384,13 +409,15 @@ RECEPTORS_SET_PARAMETERS(pchMyReceptorSectionName, nReceptors, xn)
                     int nLearn = 0;
                     float rStep = 1.F / nSpatialZones;
                     float rSize = DEFAULT_RACKET_SIZE;
-                    float rThreshold = 0.5F / nSpatialZones;
+                    float rAngle = 0.03F;
+                    float rMargin = 0.01F;
                     GetAllParameters(xn,
                         "action_period", &nPeriod,
                         "learning_time", &nLearn,
                         "racket_step", &rStep,
                         "racket_size", &rSize,
-                        "movement_threshold", &rThreshold);
+                        "angle_tolerance", &rAngle,
+                        "intercept_margin", &rMargin);
                     if (xn.child("action_period") && nPeriod < 4) {
                         cout << "action_period must be >= 4\n";
                         exit(-1);
@@ -407,15 +434,20 @@ RECEPTORS_SET_PARAMETERS(pchMyReceptorSectionName, nReceptors, xn)
                         cout << "racket_size must be in (0, 1)\n";
                         exit(-1);
                     }
-                    if (rThreshold < 0.F) {
-                        cout << "movement_threshold must be >= 0\n";
+                    if (rAngle < 0.F) {
+                        cout << "angle_tolerance must be >= 0\n";
+                        exit(-1);
+                    }
+                    if (rMargin < 0.F) {
+                        cout << "intercept_margin must be >= 0\n";
                         exit(-1);
                     }
                     nActionCommandPeriod = nPeriod;
                     nLabelUntil = nLearn;
                     rRacketStep = rStep;
                     rRacketSize = rSize;
-                    rMovementThreshold = rThreshold;
+                    rAngleTolerance = rAngle;
+                    rInterceptMargin = rMargin;
                 }
                 return new Actions;
         default: cout << "ping-pong -- Too many calls of SetParametersIn\n";

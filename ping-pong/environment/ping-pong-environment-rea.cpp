@@ -39,11 +39,13 @@ int nPunishmentsAgent = 0;
 static ImitationScorer scorer;
 static string strFitness = "f1";
 static string strReportFile;
+static string strDecisionsFile;
 static int nLogPeriod = 200000;
 static float rRacketJitter = 0.F;
 static int nJitterEvery = 10;
 static int nJitterShifts = 0;
 static ofstream ofsReport;
+static ofstream ofsDecisions;
 
 static void Refuse(const char *pchParameter, const char *pchWhy)
 {
@@ -75,12 +77,14 @@ READOUT_SET_PARAMETERS(ExperimentId, tactTermination, nOutputNeurons, xn)
     int nEvery = 10;
     string strFit = "f1";
     string strReport;
+    string strDecisions;
     GetAllParameters(xn,
         "start_time", &nStart,
         "agent_start_time", &nAgent,
         "fitness", &strFit,
         "log_period", &nLog,
         "report_file", &strReport,
+        "decisions_file", &strDecisions,
         "racket_jitter", &rJitter,
         "jitter_every", &nEvery);
     if (strFit != "f1" && strFit != "hits")
@@ -104,6 +108,7 @@ READOUT_SET_PARAMETERS(ExperimentId, tactTermination, nOutputNeurons, xn)
     rRacketJitter = rJitter;
     nJitterEvery = nEvery;
     strReportFile = strReport;
+    strDecisionsFile = strDecisions;
     nJitterShifts = 0;
     nRewardsAgent = 0;
     nPunishmentsAgent = 0;
@@ -113,6 +118,12 @@ READOUT_SET_PARAMETERS(ExperimentId, tactTermination, nOutputNeurons, xn)
         if (!ofsReport.is_open())
             Refuse("report_file", "cannot be opened");
         ofsReport << "tact,phase,f1_down,f1_up,f1_mean\n";
+    }
+    if (strDecisionsFile.length()) {
+        ofsDecisions.open(strDecisionsFile);
+        if (!ofsDecisions.is_open())
+            Refuse("decisions_file", "cannot be opened");
+        ofsDecisions << "tact,action,outcome\n";
     }
 }
 
@@ -125,7 +136,7 @@ READOUT_OBTAIN_SPIKES(v_Firing)
         bool bTest = ntact >= tactStart && ntact < nAgentStartTime;
         bool bLearn = ntact < tactStart;
         if (bLearn || bTest)
-            scorer.Score(cmdTeacher, bTest);
+            scorer.Score(cmdTeacher, bTest, ntact, bTest && ofsDecisions.is_open() ? &ofsDecisions : nullptr);
         RacketCommand cmd = ntact >= nAgentStartTime ? scorer.cmdTrigger(NULL) : cmdTeacher;
         ApplyRacketCommand(cmd);
         if (ntact < nAgentStartTime && rRacketJitter > 0.F && nJitterEvery > 0 && nLeftDecisions % nJitterEvery == 0) {
@@ -183,6 +194,8 @@ READOUT_FINALIZE(OriginalTerminationCode, filGenLog)
                   << " jitter=" << nJitterShifts << " both=" << scorer.NBothSpiked() << "\n";
         ofsReport.close();
     }
+    if (ofsDecisions.is_open())
+        ofsDecisions.close();
     if (filGenLog) {
         fprintf(filGenLog, "imitation_summary left=%d down=%d up=%d jitter=%d both=%d f1_mean %g\n",
             nLeftDecisions, nTeacherDown, nTeacherUp, nJitterShifts, scorer.NBothSpiked(), dMean);

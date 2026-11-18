@@ -22,6 +22,8 @@
         <action_period>15</action_period>
         <learning_time>45000</learning_time>
         <racket_size>0.18</racket_size>
+        <angle_tolerance>0.03</angle_tolerance>
+        <intercept_margin>0.01</intercept_margin>
       </args>
     </Implementation>
   </RECEPTORS>
@@ -94,6 +96,7 @@
       <racket_jitter>0.25</racket_jitter>
       <jitter_every>10</jitter_every>
       <report_file>imitation_smoke_report.txt</report_file>
+      <decisions_file>imitation_smoke_decisions.csv</decisions_file>
     </args>
   </Readout>
 </SNN>

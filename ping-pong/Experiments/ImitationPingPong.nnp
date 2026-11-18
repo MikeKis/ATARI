@@ -21,7 +21,8 @@
         <learning_time>$(LEARNING_TIME)</learning_time>
         <racket_size>0.18</racket_size>
         <racket_step>0.0333333</racket_step>
-        <movement_threshold>0.03</movement_threshold>
+        <angle_tolerance>0.1</angle_tolerance>
+        <intercept_margin>0.01</intercept_margin>
       </args>
     </Implementation>
   </RECEPTORS>
@@ -97,8 +98,8 @@
     <args>
       <start_time>$(LEARNING_TIME)</start_time>
       <agent_start_time>$(AGENT_START)</agent_start_time>
-      <fitness>f1</fitness>
-      <log_period>200000</log_period>
+      <fitness>hits</fitness>
+      <log_period>50000</log_period>
       <racket_jitter>$(RACKET_JITTER)</racket_jitter>
       <jitter_every>$(JITTER_EVERY)</jitter_every>
       <report_file>imitation_report.txt</report_file>

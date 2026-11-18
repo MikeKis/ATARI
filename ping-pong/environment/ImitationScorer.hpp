@@ -2,6 +2,7 @@
 #ifndef IMITATIONSCORER_HPP
 #define IMITATIONSCORER_HPP
 
+#include <ostream>
 #include <vector>
 
 #include "../ping-pong-environment.h"
@@ -22,7 +23,10 @@ public:
     void ClearWindow(void);
     void ResetPeriod(void);
     RacketCommand cmdTrigger(bool *pbBothSpiked);
-    void Score(RacketCommand cmdTeacher, bool bTestPhase);
+    // On the test phase, if posDecisions is set, appends tact,action,outcome rows for
+    // TP/FP/FN (correct/incorrect/missing). TN is omitted.
+    void Score(RacketCommand cmdTeacher, bool bTestPhase, int nTact = -1,
+        std::ostream *posDecisions = nullptr);
     double dPeriodF1(int iAction) const;
     double dTestF1(int iAction) const;
     double dTestMeanF1(void) const;

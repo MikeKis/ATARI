@@ -10,7 +10,8 @@ pair<float, float> prr_BallSpeed;
 
 float rRacketSize = DEFAULT_RACKET_SIZE;
 float rRacketStep = 1.F / nSpatialZones;
-float rMovementThreshold = 0.5F / nSpatialZones;
+float rAngleTolerance = 0.03F;
+float rInterceptMargin = 0.01F;
 
 static void ClampRacket(void)
 {

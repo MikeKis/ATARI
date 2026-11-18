@@ -30,7 +30,8 @@ enum class RacketCommand
 
 extern float rRacketSize;
 extern float rRacketStep;
-extern float rMovementThreshold;
+extern float rAngleTolerance;
+extern float rInterceptMargin;
 
 void ApplyRacketCommand(RacketCommand cmd);
 void JitterRacket(float rAmplitude);

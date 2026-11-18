@@ -77,7 +77,8 @@ RacketCommand ImitationScorer::cmdTrigger(bool *pbBothSpiked)
     return RacketCommand::Silent;
 }
 
-void ImitationScorer::Score(RacketCommand cmdTeacher, bool bTestPhase)
+void ImitationScorer::Score(RacketCommand cmdTeacher, bool bTestPhase, int nTact,
+    ostream *posDecisions)
 {
     bool bBoth = false;
     RacketCommand cmd = cmdTrigger(&bBoth);
@@ -92,12 +93,16 @@ void ImitationScorer::Score(RacketCommand cmdTeacher, bool bTestPhase)
         if (vuc_Fired[c * 2 + 1])
             ++nVotes[1];
     }
+    static const char *const apchAction[2] = {"down", "up"};
+    static const char *const apchOutcome[4] = {nullptr, "incorrect", "missing", "correct"};
     for (int a = 0; a < 2; ++a) {
         bool bTrig = nVotes[a] * 2 > nCopies;
         unsigned char uc = (unsigned char)nKind(bPositive[a], bTrig);
         ++vnPeriod[a][uc];
         if (bTestPhase)
             ++vnTest[a][uc];
+        if (bTestPhase && posDecisions && apchOutcome[uc])
+            *posDecisions << nTact << ',' << apchAction[a] << ',' << apchOutcome[uc] << '\n';
     }
     if (bTestPhase)
         ++nTestDecisions;
